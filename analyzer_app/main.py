@@ -6,8 +6,8 @@ import os, json, re
 
 # Env flags
 USE_OPENAI = bool(os.getenv("OPENAI_API_KEY", "").strip())
-PRIMARY_MODEL = os.getenv("PRIMARY_MODEL", "gpt-4o-mini")  # 1ª pasada (rápida)
-ESCALATE_MODEL = os.getenv("ESCALATE_MODEL", "gpt-4o")      # 2ª pasada (precisa)
+PRIMARY_MODEL = os.getenv("PRIMARY_MODEL", "gpt-4o-mini")  # 1Âª pasada (rÃ¡pida)
+ESCALATE_MODEL = os.getenv("ESCALATE_MODEL", "gpt-4o")      # 2Âª pasada (precisa)
 CONF_THRESHOLD = float(os.getenv("CONF_THRESHOLD", "0.55"))  # si < umbral, escalamos
 
 app = FastAPI(title="DocBot Image Analyzer", version="0.2.0")
@@ -26,34 +26,34 @@ class AnalyzeResponse(BaseModel):
     sugerencia: str
     confidence: Optional[float] = None
 
-# --- Reglas duras (heurísticas) ---
+# --- Reglas duras (heurÃ­sticas) ---
 RED_PATTERNS = [
     r"refresco|soda|gaseosa|cola|sprite|fanta|manzana\s*lift",
     r"jugo\s*(de\s*caja|industrial|embotellado)",
-    r"(bebida|energy)\s*(energ[eé]tica)",
-    r"malteada|frapp[eé]|frappuccino|jarabe",
+    r"(bebida|energy)\s*(energ[eÃ©]tica)",
+    r"malteada|frapp[eÃ©]|frappuccino|jarabe",
     r"fritura|papas?\s*fritas|chips|cheetos|doritos|nachos|totopos\s*de\s*bolsa",
     r"pastel|pan\s*dulce|muffin|donut|dona|galletas?\s*(rellenas)?|croissant",
 ]
 GREEN_PATTERNS = [
     r"agua(\s*natural)?$",
-    r"caf[eé]\s*(solo|negro|americano)$",
-    r"t[eé]\s*(sin\s*az[uú]car)?$",
+    r"caf[eÃ©]\s*(solo|negro|americano)$",
+    r"t[eÃ©]\s*(sin\s*az[uÃº]car)?$",
     r"ensalada(\s*(verde|mixta))?(\s*(sin|con\s*poco)\s*aderezo)?",
     r"verduras?\s*(al\s*vapor|asadas?)",
 ]
 YELLOW_PATTERNS = [
     r"taco(s)?|torta(s)?|tamales?|quesadillas?",
-    r"arroz|pasta|espagueti|las[aá]n?a|fideos",
+    r"arroz|pasta|espagueti|las[aÃ¡]n?a|fideos",
     r"pan(\s*integral)?|tortillas?",
     r"fruta(s)?\s*(entera)?",
     r"gelatina|cereal",
 ]
 
 CATEGORY_REASONS = {
-    "rojo": "Regla: ultraprocesado/alto en azúcar o frito Ò rojo.",
-    "amarillo": "Regla: fuente moderada de carbohidratos/porción Ò amarillo.",
-    "verde": "Regla: bebida/comida sin azúcar añadida o verduras Ò verde.",
+    "rojo": "Regla: ultraprocesado/alto en azÃºcar o frito => rojo.",
+    "amarillo": "Regla: fuente moderada de carbohidratos/porciÃ³n => amarillo.",
+    "verde": "Regla: bebida/comida sin azÃºcar aÃ±adida o verduras => verde.",
 }
 
 def match_any(patterns: List[str], text: str) -> bool:
@@ -87,8 +87,8 @@ PROMPT_JSON = (
     "\"sugerencia\": \"string\","
     "\"confidence\": float"
     "}. "
-    "Criterio: verde=adecuado; amarillo=moderar por carbohidratos/porción; rojo=alto en azúcares/ultraprocesados; gris=incierto. "
-    "Sé concreto y evita el \"gris\" salvo que la imagen no permita clasificar. No incluyas nada fuera del JSON."
+    "Criterio: verde=adecuado; amarillo=moderar por carbohidratos/porciÃ³n; rojo=alto en azÃºcares/ultraprocesados; gris=incierto. "
+    "SÃ© concreto y evita el \"gris\" salvo que la imagen no permita clasificar. No incluyas nada fuera del JSON."
 )
 
 def call_openai(model: str, url: str, temperature: float = 0.2) -> dict:
@@ -118,7 +118,7 @@ def call_openai(model: str, url: str, temperature: float = 0.2) -> dict:
         return {}
 
 def analyze_pipeline(url: str) -> AnalyzeResponse:
-    # 1) Primera pasada (rápida)
+    # 1) Primera pasada (rÃ¡pida)
     data = call_openai(PRIMARY_MODEL, url, temperature=0.2) if USE_OPENAI else {}
 
     # Fallback si no hay datos
@@ -142,7 +142,7 @@ def analyze_pipeline(url: str) -> AnalyzeResponse:
         veredicto, rule_reason = override
         razon = f"{razon} {rule_reason}".strip()
 
-    # 3) ¿Escalamos? Si veredicto sigue gris o la confianza es baja
+    # 3) Â¿Escalamos? Si veredicto sigue gris o la confianza es baja
     if veredicto == "gris" or confidence < CONF_THRESHOLD:
         data2 = call_openai(ESCALATE_MODEL, url, temperature=0.1) if USE_OPENAI else {}
         if data2:
@@ -157,10 +157,10 @@ def analyze_pipeline(url: str) -> AnalyzeResponse:
                 veredicto, rule_reason = override2
                 razon = f"{razon} {rule_reason}".strip()
 
-    # Forzar color si aún está gris (tu preferencia)
+    # Forzar color si aÃºn estÃ¡ gris (tu preferencia)
     if veredicto == "gris":
         veredicto = "amarillo"
-        razon = (razon + " Forzado a amarillo por política de clasificación.").strip()
+        razon = (razon + " Forzado a amarillo por polÃ­tica de clasificaciÃ³n.").strip()
 
     return AnalyzeResponse(
         items=items,
